@@ -156,7 +156,9 @@ Omit `env` for public-only access. Add
 
 The Worker entry serves the same tools over HTTPS at `/mcp`. It is stateless:
 each request builds its own server and returns a single JSON body. Clients that
-open a GET event stream receive `405`.
+open a GET event stream receive `405`. Each user sends their own GMO Coin
+credentials in request headers. The Worker stores no user credentials and
+ignores `GMO_API_KEY` and `GMO_API_SECRET` in its own environment.
 
 ### Prerequisites
 
@@ -165,24 +167,41 @@ open a GET event stream receive `405`.
 
 ### Secrets
 
-Set Worker secrets with `npx wrangler secret put` so they stay out of
-`wrangler.jsonc` and the git repo. Local `npm run dev:worker` reads the same
-names from `.dev.vars` (see `.dev.vars.example`).
+Set the shared access token as a Worker secret so it stays out of
+`wrangler.jsonc` and the git repo:
 
 ```bash
 npx wrangler secret put MCP_AUTH_TOKEN
-npx wrangler secret put GMO_API_KEY
-npx wrangler secret put GMO_API_SECRET
 ```
 
-Generate the bearer token with `openssl rand -hex 32`. Leave
-`GMO_ENABLE_TRADING` unset unless write tools are intentionally required. The
-default deployment exposes public tools, plus private read tools when a key and
-secret are set.
+Generate the token with `openssl rand -hex 32` and share it only with invited
+users. It is a quota gate, not a user identity. A request with a missing or
+invalid token receives `401`; a valid request without GMO headers receives the
+six public tools.
 
-`GMO_ALLOWED_SYMBOLS` and `GMO_MAX_ORDER_SIZE` are optional and only matter
-once trading is enabled; set them the same way (`npx wrangler secret put GMO_ALLOWED_SYMBOLS`,
-`npx wrangler secret put GMO_MAX_ORDER_SIZE`) if needed.
+Remove any operator credentials left from an earlier single-user deployment:
+
+```bash
+npx wrangler secret delete GMO_API_KEY
+npx wrangler secret delete GMO_API_SECRET
+```
+
+The operator must set `GMO_ENABLE_TRADING` to exactly `true` before any user's
+`X-GMO-ENABLE-TRADING: true` header can enable write tools:
+
+```bash
+npx wrangler secret put GMO_ENABLE_TRADING
+```
+
+Leave this secret unset to disable trading globally. Optional
+`GMO_ALLOWED_SYMBOLS` and `GMO_MAX_ORDER_SIZE` Worker values are operator
+ceilings. The effective symbol list is the intersection of the operator and
+user lists, and the effective maximum order size is the smaller value. Set
+them with `npx wrangler secret put GMO_ALLOWED_SYMBOLS` and
+`npx wrangler secret put GMO_MAX_ORDER_SIZE` when needed.
+
+Local `npm run dev:worker` reads the operator settings from `.dev.vars` (see
+`.dev.vars.example`). User credentials still come from request headers.
 
 ### Deploy
 
@@ -194,31 +213,68 @@ The endpoint is `https://gmocoin-mcp.<subdomain>.workers.dev/mcp`.
 
 ### Client setup
 
-Verified with Claude Code:
+Example for Claude Code:
+
+Create a project `.mcp.json` and export the referenced values in the shell that
+starts Claude Code. Claude Code supports `${VAR}` expansion in project MCP
+header values. Clients must support custom HTTP headers; OAuth-only custom
+connectors such as claude.ai are not supported by this deployment model.
+
+```json
+{
+  "mcpServers": {
+    "gmocoin": {
+      "type": "http",
+      "url": "https://gmocoin-mcp.<subdomain>.workers.dev/mcp",
+      "headers": {
+        "Authorization": "Bearer ${GMOCOIN_MCP_TOKEN}",
+        "X-GMO-API-KEY": "${GMO_API_KEY}",
+        "X-GMO-API-SECRET": "${GMO_API_SECRET}"
+      }
+    }
+  }
+}
+```
+
+Add `"X-GMO-ENABLE-TRADING": "true"` only when write tools are required and
+the operator has enabled trading. Users can also tighten the operator ceilings
+with `X-GMO-ALLOWED-SYMBOLS` and `X-GMO-MAX-ORDER-SIZE`.
+
+The command-line alternative is:
 
 ```bash
 claude mcp add --transport http gmocoin https://gmocoin-mcp.<subdomain>.workers.dev/mcp \
-  --header "Authorization: Bearer <token>"
+  --header "Authorization: Bearer <token>" \
+  --header "X-GMO-API-KEY: <key>" \
+  --header "X-GMO-API-SECRET: <secret>"
 ```
+
+This command puts all header values in shell history and stores them as plain
+text in `~/.claude.json`. `claude mcp get gmocoin` prints the header values
+unmasked; `claude mcp list` does not.
 
 ### Security notes
 
 Cloudflare Workers has no fixed egress IP, so a GMO API key IP allow-list does
-not apply to this deployment. Use a separate key from any locally IP-restricted
-key, and leave the Worker's key without an IP allow-list. Give that key
-read-only function permissions and leave `GMO_ENABLE_TRADING` unset.
+not work with this deployment. Every user's key must have no IP allow-list.
+Use a separate key from any locally IP-restricted key and grant only the
+function permissions needed for the intended tools.
+
+Users must trust the Worker operator. The secret travels to Cloudflare over TLS
+on every request and exists as plaintext in Worker memory while the request is
+signed, even though the Worker does not store it.
+
+Never run `wrangler tail` in any format or attach a Tail Worker while users are
+connected. Tail events include custom request headers without redaction. The
+Worker configuration disables invocation logs; keep invocation logs disabled
+and never add code that logs requests or headers.
 
 `MCP_AUTH_TOKEN` is mandatory. If it is unset, every request is refused.
 Optionally put Cloudflare Access in front of the Worker.
 
-`claude mcp add --header "Authorization: Bearer <token>"` puts the token in
-shell history and in `~/.claude.json` as plain text (or in `.mcp.json` in the
-project when `-s project` is used), the same exposure the stdio section above
-describes for `-e`. `claude mcp get <name>` prints that header unmasked;
-`claude mcp list` does not. If the token leaks this way, rotate it: generate a
-new one, `npx wrangler secret put MCP_AUTH_TOKEN`, then remove and re-add the
-client (`claude mcp remove <name>` then `claude mcp add ...`) with the new
-value.
+If the shared token leaks, rotate it: generate a new one, run
+`npx wrangler secret put MCP_AUTH_TOKEN`, then update each invited client's
+configuration.
 
 ## Tools
 
