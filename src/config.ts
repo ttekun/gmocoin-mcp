@@ -1,5 +1,3 @@
-import { compareDecimalStrings } from "./tools/common.js";
-
 export const PUBLIC_BASE = "https://api.coin.z.com/public";
 export const PRIVATE_BASE = "https://api.coin.z.com/private";
 
@@ -21,6 +19,17 @@ export interface OperatorLimits {
 }
 
 const DECIMAL_STRING = /^\d+(\.\d+)?$/;
+
+export function compareDecimalStrings(left: string, right: string): number {
+  const [leftWhole = "0", leftFraction = ""] = left.split(".");
+  const [rightWhole = "0", rightFraction = ""] = right.split(".");
+  const scale = Math.max(leftFraction.length, rightFraction.length);
+  const leftScaled = BigInt(leftWhole + leftFraction.padEnd(scale, "0"));
+  const rightScaled = BigInt(rightWhole + rightFraction.padEnd(scale, "0"));
+  if (leftScaled < rightScaled) return -1;
+  if (leftScaled > rightScaled) return 1;
+  return 0;
+}
 
 export function parseAllowedSymbols(
   value: string | undefined,

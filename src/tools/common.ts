@@ -2,6 +2,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import type { PrivateCredentials } from "../client/http.js";
 import { formatToolError } from "../client/errors.js";
+import { compareDecimalStrings } from "../config.js";
 
 export const decimalString = z
   .string()
@@ -12,17 +13,6 @@ export interface ToolContext {
   allowedSymbols?: ReadonlySet<string>;
   maxOrderSize?: string;
   maxOrderSizeInvalid?: boolean;
-}
-
-export function compareDecimalStrings(left: string, right: string): number {
-  const [leftWhole = "0", leftFraction = ""] = left.split(".");
-  const [rightWhole = "0", rightFraction = ""] = right.split(".");
-  const scale = Math.max(leftFraction.length, rightFraction.length);
-  const leftScaled = BigInt(leftWhole + leftFraction.padEnd(scale, "0"));
-  const rightScaled = BigInt(rightWhole + rightFraction.padEnd(scale, "0"));
-  if (leftScaled < rightScaled) return -1;
-  if (leftScaled > rightScaled) return 1;
-  return 0;
 }
 
 export function enforceTradingLimits(
