@@ -1,6 +1,10 @@
 import { timingSafeEqual } from "node:crypto";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
-import { loadConfig } from "./config.js";
+import {
+  applyOperatorCeilings,
+  loadConfig,
+  parseOperatorLimits,
+} from "./config.js";
 import { buildServer } from "./server.js";
 
 // `type`, not `interface`: only type-alias object types get an implicit index
@@ -42,6 +46,7 @@ export async function handleRemoteRequest(
   request: Request,
   env: RemoteEnv,
 ): Promise<Response> {
+  // Never log the request or its headers. They can contain GMO credentials.
   const { pathname } = new URL(request.url);
   if (pathname !== "/mcp") {
     return new Response("Not Found", { status: 404 });
@@ -67,7 +72,21 @@ export async function handleRemoteRequest(
     });
   }
 
-  const server = buildServer(loadConfig(env));
+  const userConfig = loadConfig({
+    GMO_API_KEY: request.headers.get("X-GMO-API-KEY") ?? undefined,
+    GMO_API_SECRET: request.headers.get("X-GMO-API-SECRET") ?? undefined,
+    GMO_ENABLE_TRADING:
+      request.headers.get("X-GMO-ENABLE-TRADING") ?? undefined,
+    GMO_ALLOWED_SYMBOLS:
+      request.headers.get("X-GMO-ALLOWED-SYMBOLS") ?? undefined,
+    GMO_MAX_ORDER_SIZE:
+      request.headers.get("X-GMO-MAX-ORDER-SIZE") ?? undefined,
+  });
+  const config = applyOperatorCeilings(
+    userConfig,
+    parseOperatorLimits(env),
+  );
+  const server = buildServer(config);
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,

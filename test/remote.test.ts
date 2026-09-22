@@ -26,6 +26,7 @@ function request(
 
 async function withClient(
   env: RemoteEnv,
+  headers: HeadersInit,
   run: (client: Client) => Promise<void>,
 ): Promise<void> {
   const transport = new StreamableHTTPClientTransport(
@@ -34,7 +35,7 @@ async function withClient(
       fetch: (input, init) =>
         handleRemoteRequest(new Request(input, init), env),
       requestInit: {
-        headers: { Authorization: `Bearer ${TOKEN}` },
+        headers: { Authorization: `Bearer ${TOKEN}`, ...headers },
       },
     },
   );
@@ -154,18 +155,37 @@ describe("remote handler", () => {
   });
 
   it("lists 6 public tools when credentials are absent", async () => {
-    await withClient({ MCP_AUTH_TOKEN: TOKEN }, async (client) => {
-      const result = await client.listTools();
-      assert.equal(result.tools.length, 6);
-    });
+    await withClient(
+      { MCP_AUTH_TOKEN: TOKEN },
+      {},
+      async (client) => {
+        const result = await client.listTools();
+        assert.equal(result.tools.length, 6);
+      },
+    );
   });
 
-  it("lists 20 tools when dummy credentials are configured", async () => {
+  it("ignores Worker credentials when request headers are absent", async () => {
     await withClient(
       {
         MCP_AUTH_TOKEN: TOKEN,
         GMO_API_KEY: "dummy-key",
         GMO_API_SECRET: "dummy-secret",
+      },
+      {},
+      async (client) => {
+        const result = await client.listTools();
+        assert.equal(result.tools.length, 6);
+      },
+    );
+  });
+
+  it("lists 20 tools when dummy credentials are sent as headers", async () => {
+    await withClient(
+      { MCP_AUTH_TOKEN: TOKEN },
+      {
+        "X-GMO-API-KEY": "dummy-key",
+        "X-GMO-API-SECRET": "dummy-secret",
       },
       async (client) => {
         const result = await client.listTools();
@@ -174,13 +194,28 @@ describe("remote handler", () => {
     );
   });
 
-  it("lists 29 tools when trading is enabled", async () => {
+  it("lists 20 tools when only the user enables trading", async () => {
     await withClient(
+      { MCP_AUTH_TOKEN: TOKEN },
       {
-        MCP_AUTH_TOKEN: TOKEN,
-        GMO_API_KEY: "dummy-key",
-        GMO_API_SECRET: "dummy-secret",
-        GMO_ENABLE_TRADING: "true",
+        "X-GMO-API-KEY": "dummy-key",
+        "X-GMO-API-SECRET": "dummy-secret",
+        "X-GMO-ENABLE-TRADING": "true",
+      },
+      async (client) => {
+        const result = await client.listTools();
+        assert.equal(result.tools.length, 20);
+      },
+    );
+  });
+
+  it("lists 29 tools when the user and operator enable trading", async () => {
+    await withClient(
+      { MCP_AUTH_TOKEN: TOKEN, GMO_ENABLE_TRADING: "true" },
+      {
+        "X-GMO-API-KEY": "dummy-key",
+        "X-GMO-API-SECRET": "dummy-secret",
+        "X-GMO-ENABLE-TRADING": "true",
       },
       async (client) => {
         const result = await client.listTools();
