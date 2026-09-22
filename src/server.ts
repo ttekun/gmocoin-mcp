@@ -33,6 +33,9 @@ export function buildServer(config: Config = loadConfig()): McpServer {
       apiKey: config.apiKey,
       apiSecret: config.apiSecret,
     },
+    allowedSymbols: config.allowedSymbols,
+    maxOrderSize: config.maxOrderSize,
+    maxOrderSizeInvalid: config.maxOrderSizeInvalid,
   };
   registerAccountTools(server, context);
   registerOrderReadTools(server, context);

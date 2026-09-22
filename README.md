@@ -46,6 +46,8 @@ to stderr.
 | `GMO_API_KEY` | Private tools only | GMO Coin API key |
 | `GMO_API_SECRET` | Private tools only | GMO Coin API secret |
 | `GMO_ENABLE_TRADING` | No | Set to exactly `true` to register write tools; defaults to off |
+| `GMO_ALLOWED_SYMBOLS` | No | Optional comma-separated symbol allowlist for order tools |
+| `GMO_MAX_ORDER_SIZE` | No | Optional maximum order size as a decimal string |
 
 Both credential variables must be present to enable private read tools. Secrets
 are never logged or returned in tool results.
@@ -53,6 +55,29 @@ are never logged or returned in tool results.
 Trading and transfer tools can place, alter, or cancel real-money transactions.
 They are not registered unless credentials are present and
 `GMO_ENABLE_TRADING=true`.
+
+## Trading safeguards
+
+`GMO_ALLOWED_SYMBOLS` and `GMO_MAX_ORDER_SIZE` are optional. When they are
+unset, symbols and sizes are sent to the API unchanged.
+
+`GMO_ALLOWED_SYMBOLS` is a comma-separated list. When it is set,
+`gmo_place_order`, `gmo_close_order`, `gmo_close_bulk_order`, and
+`gmo_cancel_bulk_order` reject any symbol that is not in the list. The tool
+returns an error and does not call the API.
+
+`GMO_MAX_ORDER_SIZE` is a non-negative decimal string. When it is set,
+`gmo_place_order.size`, the single `gmo_close_order` position size, and
+`gmo_close_bulk_order.size` must be less than or equal to that value. The
+comparison scales both strings to the same number of decimal places and uses
+integer arithmetic, so it does not use floating point. A value that is not a
+decimal string is refused, and every size-checked order then fails without a
+network call.
+
+```bash
+GMO_ALLOWED_SYMBOLS=BTC,ETH
+GMO_MAX_ORDER_SIZE=0.01
+```
 
 ## Claude Code
 

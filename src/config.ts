@@ -6,6 +6,35 @@ export interface Config {
   apiSecret?: string;
   hasCredentials: boolean;
   tradingEnabled: boolean;
+  allowedSymbols?: ReadonlySet<string>;
+  maxOrderSize?: string;
+  maxOrderSizeInvalid?: boolean;
+}
+
+const DECIMAL_STRING = /^\d+(\.\d+)?$/;
+
+function parseAllowedSymbols(
+  value: string | undefined,
+): ReadonlySet<string> | undefined {
+  if (value === undefined) return undefined;
+  const symbols = value
+    .split(",")
+    .map((symbol) => symbol.trim())
+    .filter((symbol) => symbol.length > 0);
+  return symbols.length > 0 ? new Set(symbols) : undefined;
+}
+
+function parseMaxOrderSize(value: string | undefined): {
+  maxOrderSize?: string;
+  maxOrderSizeInvalid?: boolean;
+} {
+  const trimmed = value?.trim();
+  if (!trimmed) return {};
+  if (DECIMAL_STRING.test(trimmed)) return { maxOrderSize: trimmed };
+  console.error(
+    "GMO_MAX_ORDER_SIZE must be a non-negative decimal string; size-checked orders will be refused.",
+  );
+  return { maxOrderSizeInvalid: true };
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -19,10 +48,14 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     );
   }
 
+  const sizeLimit = parseMaxOrderSize(env.GMO_MAX_ORDER_SIZE);
+
   return {
     apiKey,
     apiSecret,
     hasCredentials,
     tradingEnabled: hasCredentials && env.GMO_ENABLE_TRADING === "true",
+    allowedSymbols: parseAllowedSymbols(env.GMO_ALLOWED_SYMBOLS),
+    ...sizeLimit,
   };
 }

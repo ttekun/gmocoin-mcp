@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { privateRequest } from "../client/http.js";
-import { decimalString, runTool, type ToolContext } from "./common.js";
+import { decimalString, enforceTradingLimits, runTool, type ToolContext } from "./common.js";
 
 const side = z.enum(["BUY", "SELL"]);
 const executionType = z.enum(["MARKET", "LIMIT", "STOP"]);
@@ -164,7 +164,14 @@ export function registerOrderWriteTools(
       inputSchema: placeOrderSchema,
       annotations: destructive,
     },
-    (input) => runTool(() => post("/v1/order", input)),
+    (input) => {
+      const blocked = enforceTradingLimits(context, {
+        symbols: [input.symbol],
+        size: input.size,
+      });
+      if (blocked) return blocked;
+      return runTool(() => post("/v1/order", input));
+    },
   );
 
   server.registerTool(
@@ -222,6 +229,10 @@ export function registerOrderWriteTools(
       }),
       annotations: destructive,
     },
-    (input) => runTool(() => post("/v1/cancelBulkOrder", input)),
+    (input) => {
+      const blocked = enforceTradingLimits(context, { symbols: input.symbols });
+      if (blocked) return blocked;
+      return runTool(() => post("/v1/cancelBulkOrder", input));
+    },
   );
 }
