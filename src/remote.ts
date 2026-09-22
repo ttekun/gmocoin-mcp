@@ -25,11 +25,9 @@ function jsonError(
 function readBearerToken(request: Request): string | undefined {
   const header = request.headers.get("Authorization");
   if (header === null) return undefined;
-  const prefix = "Bearer ";
-  if (!header.startsWith(prefix) || header.length === prefix.length) {
-    return undefined;
-  }
-  return header.slice(prefix.length);
+  const match = /^Bearer\s+(.+)$/i.exec(header);
+  const token = match?.[1]?.trim();
+  return token ? token : undefined;
 }
 
 function bearerTokensMatch(expected: string, presented: string): boolean {
@@ -75,7 +73,9 @@ export async function handleRemoteRequest(
     enableJsonResponse: true,
   });
   await server.connect(transport);
-  const response = await transport.handleRequest(request);
-  await server.close();
-  return response;
+  try {
+    return await transport.handleRequest(request);
+  } finally {
+    await server.close();
+  }
 }

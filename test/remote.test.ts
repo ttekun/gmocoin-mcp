@@ -132,6 +132,27 @@ describe("remote handler", () => {
     assert.equal(body.result.serverInfo.name, "gmocoin-mcp");
   });
 
+  it("accepts a lowercase bearer scheme on initialize", async () => {
+    const response = await handleRemoteRequest(
+      request("/mcp", {
+        method: "POST",
+        headers: {
+          Authorization: `bearer ${TOKEN}`,
+          Accept: "application/json, text/event-stream",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(initializeBody),
+      }),
+      { MCP_AUTH_TOKEN: TOKEN },
+    );
+
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as {
+      result: { serverInfo: { name: string } };
+    };
+    assert.equal(body.result.serverInfo.name, "gmocoin-mcp");
+  });
+
   it("lists 6 public tools when credentials are absent", async () => {
     await withClient({ MCP_AUTH_TOKEN: TOKEN }, async (client) => {
       const result = await client.listTools();
