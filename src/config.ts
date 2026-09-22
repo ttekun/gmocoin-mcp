@@ -37,7 +37,9 @@ function parseMaxOrderSize(value: string | undefined): {
   return { maxOrderSizeInvalid: true };
 }
 
-export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
+export type EnvSource = Readonly<Record<string, string | undefined>>;
+
+export function loadConfig(env: EnvSource = process.env): Config {
   const apiKey = env.GMO_API_KEY?.trim() || undefined;
   const apiSecret = env.GMO_API_SECRET?.trim() || undefined;
   const hasCredentials = Boolean(apiKey && apiSecret);

@@ -14,7 +14,9 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/index.ts",
+    "dev:worker": "wrangler dev",
     "start": "node --env-file-if-exists=.env dist/index.js",
+    "deploy": "wrangler deploy",
     "test": "npm run build --silent && node --import tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
@@ -35,6 +37,7 @@
   "devDependencies": {
     "@types/node": "26.6.2",
     "tsx": "4.23.15",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "wrangler": "^4.136.1"
   }
 }
