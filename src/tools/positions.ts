@@ -57,12 +57,19 @@ const closeOrderSchema = z
     side,
     executionType,
     timeInForce: timeInForce.optional(),
-    price: z.string().min(1).optional(),
+    price: z
+      .string()
+      .min(1)
+      .describe("Closing order price as a decimal string")
+      .optional(),
     settlePosition: z
       .array(
         z.object({
           positionId: z.number().int().positive(),
-          size: z.string().min(1),
+          size: z
+            .string()
+            .min(1)
+            .describe("Position size to close as a decimal string"),
         }),
       )
       .length(1),
@@ -76,8 +83,12 @@ const closeBulkOrderSchema = z
     side,
     executionType,
     timeInForce: timeInForce.optional(),
-    price: z.string().min(1).optional(),
-    size: z.string().min(1),
+    price: z
+      .string()
+      .min(1)
+      .describe("Closing order price as a decimal string")
+      .optional(),
+    size: z.string().min(1).describe("Total size to close as a decimal string"),
   })
   .superRefine(validateCloseOrder);
 
@@ -129,7 +140,7 @@ export function registerPositionWriteTools(
     {
       title: "Close one position",
       description:
-        "Moves real money: close exactly one leverage position. side is the closing-order side, opposite the position.",
+        "Moves real money: close exactly one leverage position. side is the closing-order side, opposite the position. price and size are decimal strings; MARKET forbids price and LIMIT/STOP require it. timeInForce accepts FAK / FAS / FOK / SOK, where SOK is post-only, and may only be specified with LIMIT. When omitted, MARKET and STOP use FAK and LIMIT uses FAS. cancelBefore is only valid with MARKET (effective FAK).",
       inputSchema: closeOrderSchema,
       annotations: destructive,
     },
@@ -141,7 +152,7 @@ export function registerPositionWriteTools(
     {
       title: "Bulk close positions",
       description:
-        "Moves real money: close leverage positions in bulk. side is the closing-order side, opposite the positions.",
+        "Moves real money: close leverage positions in bulk. side is the closing-order side, opposite the positions. price and size are decimal strings; MARKET forbids price and LIMIT/STOP require it. timeInForce accepts FAK / FAS / FOK / SOK, where SOK is post-only, and may only be specified with LIMIT. When omitted, MARKET and STOP use FAK and LIMIT uses FAS.",
       inputSchema: closeBulkOrderSchema,
       annotations: destructive,
     },
@@ -155,7 +166,10 @@ export function registerPositionWriteTools(
       description: "Moves real money: change the losscut price of a leverage position.",
       inputSchema: z.object({
         positionId: z.number().int().positive(),
-        losscutPrice: z.string().min(1),
+        losscutPrice: z
+          .string()
+          .min(1)
+          .describe("New losscut price as a decimal string"),
       }),
       annotations: destructive,
     },

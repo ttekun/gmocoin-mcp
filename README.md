@@ -26,6 +26,16 @@ Run the compiled server with:
 npm start
 ```
 
+`npm start` loads `.env` when it exists. The equivalent direct command is:
+
+```bash
+node --env-file-if-exists=.env dist/index.js
+```
+
+The package binary can also be launched as `gmocoin-mcp` after a global
+installation, or through `npx gmocoin-mcp`. The entry point supports npm's
+symlinked bin layout.
+
 The server communicates over stdout using MCP. Diagnostic messages are written
 to stderr.
 

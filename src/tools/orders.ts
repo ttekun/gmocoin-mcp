@@ -30,9 +30,17 @@ const placeOrderSchema = z
     side,
     executionType,
     timeInForce: timeInForce.optional(),
-    price: z.string().min(1).optional(),
-    losscutPrice: z.string().min(1).optional(),
-    size: z.string().min(1),
+    price: z
+      .string()
+      .min(1)
+      .describe("Order price as a decimal string")
+      .optional(),
+    losscutPrice: z
+      .string()
+      .min(1)
+      .describe("Leverage losscut price as a decimal string")
+      .optional(),
+    size: z.string().min(1).describe("Order size as a decimal string"),
     cancelBefore: z.boolean().optional(),
   })
   .superRefine((input, context) => {
@@ -58,6 +66,7 @@ const placeOrderSchema = z
         message: "timeInForce may only be specified for LIMIT orders",
       });
     }
+    // GMO leverage symbols use <COIN>_JPY; ERR-5118 backs up losscutPrice validation.
     if (
       input.losscutPrice !== undefined &&
       (!input.symbol.endsWith("_JPY") || !priced)
@@ -157,7 +166,7 @@ export function registerOrderWriteTools(
     {
       title: "Place order",
       description:
-        "Moves real money: place a spot or leverage order. Prices and sizes are strings. MARKET forbids price; LIMIT/STOP require it.",
+        "Moves real money: place a spot or leverage order. price and size are decimal strings; MARKET forbids price and LIMIT/STOP require it. timeInForce accepts FAK / FAS / FOK / SOK, where SOK is post-only, and may only be specified with LIMIT. When omitted, MARKET and STOP use FAK and LIMIT uses FAS. losscutPrice is leverage-only and only valid with LIMIT or STOP. cancelBefore is only for spot MARKET SELL orders (effective FAK).",
       inputSchema: placeOrderSchema,
       annotations: destructive,
     },
@@ -171,8 +180,12 @@ export function registerOrderWriteTools(
       description: "Moves real money: change the price of an existing order.",
       inputSchema: z.object({
         orderId: z.number().int().positive(),
-        price: z.string().min(1),
-        losscutPrice: z.string().min(1).optional(),
+        price: z.string().min(1).describe("Order price as a decimal string"),
+        losscutPrice: z
+          .string()
+          .min(1)
+          .describe("Leverage losscut price as a decimal string")
+          .optional(),
       }),
       annotations: destructive,
     },
