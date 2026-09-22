@@ -161,26 +161,28 @@ open a GET event stream receive `405`.
 ### Prerequisites
 
 - A Cloudflare account
-- Wrangler logged in (`wrangler login`)
+- Wrangler logged in (`npx wrangler login`)
 
 ### Secrets
 
-Set Worker secrets with `wrangler secret put` so they stay out of
+Set Worker secrets with `npx wrangler secret put` so they stay out of
 `wrangler.jsonc` and the git repo. Local `npm run dev:worker` reads the same
 names from `.dev.vars` (see `.dev.vars.example`).
 
 ```bash
-wrangler secret put MCP_AUTH_TOKEN
-wrangler secret put GMO_API_KEY
-wrangler secret put GMO_API_SECRET
-wrangler secret put GMO_ALLOWED_SYMBOLS
-wrangler secret put GMO_MAX_ORDER_SIZE
+npx wrangler secret put MCP_AUTH_TOKEN
+npx wrangler secret put GMO_API_KEY
+npx wrangler secret put GMO_API_SECRET
 ```
 
 Generate the bearer token with `openssl rand -hex 32`. Leave
 `GMO_ENABLE_TRADING` unset unless write tools are intentionally required. The
 default deployment exposes public tools, plus private read tools when a key and
 secret are set.
+
+`GMO_ALLOWED_SYMBOLS` and `GMO_MAX_ORDER_SIZE` are optional and only matter
+once trading is enabled; set them the same way (`npx wrangler secret put GMO_ALLOWED_SYMBOLS`,
+`npx wrangler secret put GMO_MAX_ORDER_SIZE`) if needed.
 
 ### Deploy
 
@@ -208,6 +210,15 @@ read-only function permissions and leave `GMO_ENABLE_TRADING` unset.
 
 `MCP_AUTH_TOKEN` is mandatory. If it is unset, every request is refused.
 Optionally put Cloudflare Access in front of the Worker.
+
+`claude mcp add --header "Authorization: Bearer <token>"` puts the token in
+shell history and in `~/.claude.json` as plain text (or in `.mcp.json` in the
+project when `-s project` is used), the same exposure the stdio section above
+describes for `-e`. `claude mcp get <name>` prints that header unmasked;
+`claude mcp list` does not. If the token leaks this way, rotate it: generate a
+new one, `npx wrangler secret put MCP_AUTH_TOKEN`, then remove and re-add the
+client (`claude mcp remove <name>` then `claude mcp add ...`) with the new
+value.
 
 ## Tools
 
