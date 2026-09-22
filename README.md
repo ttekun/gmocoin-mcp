@@ -79,6 +79,36 @@ GMO_ALLOWED_SYMBOLS=BTC,ETH
 GMO_MAX_ORDER_SIZE=0.01
 ```
 
+## Security notes
+
+Create the GMO Coin API key with the minimum permissions required. Use
+read-only permissions unless trading is intentionally enabled, and turn on IP
+restriction in the GMO member page.
+
+Store the key and secret in a `.env` file with mode 600. Passing them with
+`claude mcp add -e` puts the secret in shell history and in the MCP client's
+configuration file as plain text.
+
+```bash
+chmod 600 .env
+node --env-file-if-exists=.env dist/index.js
+```
+
+With `GMO_ENABLE_TRADING=true`, any content the model reads can try to trigger
+an order. Keep the write tools out of any client auto-approve or allow list,
+leave the flag off for day-to-day use, and use a separate API key without
+order permission for read-only work. `GMO_ALLOWED_SYMBOLS` and
+`GMO_MAX_ORDER_SIZE` can further limit symbols and order size when trading is
+enabled.
+
+This API surface has no tool that withdraws crypto or JPY to an external
+destination. `gmo_transfer_jpy` moves JPY only between the user's own crypto
+account and FX account.
+
+`--env-file-if-exists=.env` resolves `.env` relative to the current working
+directory. Start the server from the directory that contains that file, or
+pass an absolute path.
+
 ## Claude Code
 
 Public tools only:
