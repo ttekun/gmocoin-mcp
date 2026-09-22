@@ -94,6 +94,7 @@ export async function privateRequest(
   }
 
   const response = await fetch(buildUrl(PRIVATE_BASE, path, options.query), {
+    redirect: "error",
     method,
     headers,
     body: method === "GET" ? undefined : bodyText || undefined,

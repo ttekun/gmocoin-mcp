@@ -67,6 +67,13 @@ unset, symbols and sizes are sent to the API unchanged.
 `gmo_cancel_bulk_order` reject any symbol that is not in the list. The tool
 returns an error and does not call the API.
 
+When a symbol allowlist is configured, `gmo_change_order`, `gmo_cancel_order`,
+`gmo_cancel_orders`, and `gmo_change_losscut_price` are blocked because their
+ID-only inputs do not establish the target symbol. This also applies to an empty
+intersection of remote operator and user allowlists. Use `gmo_cancel_bulk_order`
+with an allowed symbol for cancellations. These ID-based tools remain available
+when no symbol allowlist is configured.
+
 `GMO_MAX_ORDER_SIZE` is a non-negative decimal string. When it is set,
 `gmo_place_order.size`, the single `gmo_close_order` position size, and
 `gmo_close_bulk_order.size` must be less than or equal to that value. The
@@ -81,6 +88,9 @@ GMO_MAX_ORDER_SIZE=0.01
 ```
 
 ## Security notes
+
+Authenticated GMO API requests reject redirects to prevent forwarding API keys
+and signatures to another destination.
 
 Create the GMO Coin API key with the minimum permissions required. Use
 read-only permissions unless trading is intentionally enabled, and turn on IP

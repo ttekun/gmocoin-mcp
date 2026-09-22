@@ -61,6 +61,38 @@ async function withClient(
 }
 
 describe("trading safeguards", () => {
+  const idOperations = [
+    { name: "gmo_change_order", arguments: { orderId: 1, price: "1" } },
+    { name: "gmo_cancel_order", arguments: { orderId: 1 } },
+    { name: "gmo_cancel_orders", arguments: { orderIds: [1] } },
+    { name: "gmo_change_losscut_price", arguments: { positionId: 1, losscutPrice: "1" } },
+  ];
+
+  for (const symbols of [[], ["BTC"]]) {
+    it(`blocks all ID-based mutations with allowlist ${JSON.stringify(symbols)}`, async () => {
+      stubFetch();
+      await withClient(tradingConfig({ allowedSymbols: new Set(symbols) }), async (client) => {
+        for (const operation of idOperations) {
+          const result = await client.callTool(operation);
+          assert.equal(result.isError, true, operation.name);
+          assert.match(resultText(result), /GMO_ALLOWED_SYMBOLS/);
+        }
+        assert.equal(requests.length, 0);
+      });
+    });
+  }
+
+  it("allows ID-based mutations without a symbol allowlist", async () => {
+    stubFetch();
+    await withClient(tradingConfig(), async (client) => {
+      for (const operation of idOperations) {
+        const result = await client.callTool(operation);
+        assert.notEqual(result.isError, true, operation.name);
+      }
+      assert.equal(requests.length, idOperations.length);
+    });
+  });
+
   it("parses optional limits and treats blanks as unset", () => {
     const parsed = loadConfig({
       GMO_API_KEY: "key",

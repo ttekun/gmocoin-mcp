@@ -179,6 +179,6 @@ export function registerPositionWriteTools(
       }),
       annotations: destructive,
     },
-    (input) => runTool(() => post("/v1/changeLosscutPrice", input)),
+    (input) => enforceTradingLimits(context, {}) ?? runTool(() => post("/v1/changeLosscutPrice", input)),
   );
 }

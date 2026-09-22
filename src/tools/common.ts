@@ -19,6 +19,15 @@ export function enforceTradingLimits(
   context: ToolContext,
   check: { symbols?: readonly string[]; size?: string },
 ): CallToolResult | undefined {
+  if (context.allowedSymbols && check.symbols === undefined) {
+    return {
+      isError: true,
+      content: [{
+        type: "text",
+        text: "ID-based changes and cancellations are disabled when GMO_ALLOWED_SYMBOLS is set because the target symbol cannot be verified from the input.",
+      }],
+    };
+  }
   if (context.allowedSymbols && check.symbols) {
     const rejected = check.symbols.filter(
       (symbol) => !context.allowedSymbols?.has(symbol),

@@ -43,6 +43,7 @@ describe("privateRequest", () => {
     });
 
     assert.ok(captured);
+    assert.equal(captured.init?.redirect, "error");
     const url = new URL(String(captured.input));
     const headers = new Headers(captured.init?.headers);
     const timestamp = headers.get("API-TIMESTAMP");
@@ -73,6 +74,7 @@ describe("privateRequest", () => {
     await privateRequest(credentials, "POST", "/v1/order", { body });
 
     assert.ok(captured);
+    assert.equal(captured.init?.redirect, "error");
     const headers = new Headers(captured.init?.headers);
     const timestamp = headers.get("API-TIMESTAMP");
     const bodyText = captured.init?.body;

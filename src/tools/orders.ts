@@ -188,7 +188,7 @@ export function registerOrderWriteTools(
       }),
       annotations: destructive,
     },
-    (input) => runTool(() => post("/v1/changeOrder", input)),
+    (input) => enforceTradingLimits(context, {}) ?? runTool(() => post("/v1/changeOrder", input)),
   );
 
   server.registerTool(
@@ -199,7 +199,7 @@ export function registerOrderWriteTools(
       inputSchema: z.object({ orderId: z.number().int().positive() }),
       annotations: destructive,
     },
-    (input) => runTool(() => post("/v1/cancelOrder", input)),
+    (input) => enforceTradingLimits(context, {}) ?? runTool(() => post("/v1/cancelOrder", input)),
   );
 
   server.registerTool(
@@ -212,7 +212,7 @@ export function registerOrderWriteTools(
       }),
       annotations: destructive,
     },
-    (input) => runTool(() => post("/v1/cancelOrders", input)),
+    (input) => enforceTradingLimits(context, {}) ?? runTool(() => post("/v1/cancelOrders", input)),
   );
 
   server.registerTool(
