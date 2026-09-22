@@ -192,7 +192,7 @@ The endpoint is `https://gmocoin-mcp.<subdomain>.workers.dev/mcp`.
 
 ### Client setup
 
-Example for Claude Code:
+Verified with Claude Code:
 
 ```bash
 claude mcp add --transport http gmocoin https://gmocoin-mcp.<subdomain>.workers.dev/mcp \
