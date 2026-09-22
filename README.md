@@ -1,7 +1,8 @@
 # GMO Coin MCP Server
 
 An MCP server for the GMO Coin REST API. It exposes public market data, private
-account data, and opt-in trading tools over stdio.
+account data, and opt-in trading tools over stdio, and can be deployed as a
+remote HTTP server on Cloudflare Workers.
 
 ## Requirements
 
@@ -150,6 +151,63 @@ Add an entry like this to the Claude Desktop MCP configuration:
 
 Omit `env` for public-only access. Add
 `"GMO_ENABLE_TRADING": "true"` only to enable write tools.
+
+## Remote server (Cloudflare Workers)
+
+The Worker entry serves the same tools over HTTPS at `/mcp`. It is stateless:
+each request builds its own server and returns a single JSON body. Clients that
+open a GET event stream receive `405`.
+
+### Prerequisites
+
+- A Cloudflare account
+- Wrangler logged in (`wrangler login`)
+
+### Secrets
+
+Set Worker secrets with `wrangler secret put` so they stay out of
+`wrangler.jsonc` and the git repo. Local `npm run dev:worker` reads the same
+names from `.dev.vars` (see `.dev.vars.example`).
+
+```bash
+wrangler secret put MCP_AUTH_TOKEN
+wrangler secret put GMO_API_KEY
+wrangler secret put GMO_API_SECRET
+wrangler secret put GMO_ALLOWED_SYMBOLS
+wrangler secret put GMO_MAX_ORDER_SIZE
+```
+
+Generate the bearer token with `openssl rand -hex 32`. Leave
+`GMO_ENABLE_TRADING` unset unless write tools are intentionally required. The
+default deployment exposes public tools, plus private read tools when a key and
+secret are set.
+
+### Deploy
+
+```bash
+npm run deploy
+```
+
+The endpoint is `https://gmocoin-mcp.<subdomain>.workers.dev/mcp`.
+
+### Client setup
+
+Verified with Claude Code:
+
+```bash
+claude mcp add --transport http gmocoin https://gmocoin-mcp.<subdomain>.workers.dev/mcp \
+  --header "Authorization: Bearer <token>"
+```
+
+### Security notes
+
+Cloudflare Workers has no fixed egress IP, so a GMO API key IP allow-list does
+not apply to this deployment. Use a separate key from any locally IP-restricted
+key, and leave the Worker's key without an IP allow-list. Give that key
+read-only function permissions and leave `GMO_ENABLE_TRADING` unset.
+
+`MCP_AUTH_TOKEN` is mandatory. If it is unset, every request is refused.
+Optionally put Cloudflare Access in front of the Worker.
 
 ## Tools
 
