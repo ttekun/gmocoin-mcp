@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { privateRequest } from "../client/http.js";
-import { runTool, type ToolContext } from "./common.js";
+import { decimalString, runTool, type ToolContext } from "./common.js";
 
 const side = z.enum(["BUY", "SELL"]);
 const executionType = z.enum(["MARKET", "LIMIT", "STOP"]);
@@ -57,19 +57,14 @@ const closeOrderSchema = z
     side,
     executionType,
     timeInForce: timeInForce.optional(),
-    price: z
-      .string()
-      .min(1)
+    price: decimalString
       .describe("Closing order price as a decimal string")
       .optional(),
     settlePosition: z
       .array(
         z.object({
           positionId: z.number().int().positive(),
-          size: z
-            .string()
-            .min(1)
-            .describe("Position size to close as a decimal string"),
+          size: decimalString.describe("Position size to close as a decimal string"),
         }),
       )
       .length(1),
@@ -83,12 +78,10 @@ const closeBulkOrderSchema = z
     side,
     executionType,
     timeInForce: timeInForce.optional(),
-    price: z
-      .string()
-      .min(1)
+    price: decimalString
       .describe("Closing order price as a decimal string")
       .optional(),
-    size: z.string().min(1).describe("Total size to close as a decimal string"),
+    size: decimalString.describe("Total size to close as a decimal string"),
   })
   .superRefine(validateCloseOrder);
 
@@ -166,10 +159,9 @@ export function registerPositionWriteTools(
       description: "Moves real money: change the losscut price of a leverage position.",
       inputSchema: z.object({
         positionId: z.number().int().positive(),
-        losscutPrice: z
-          .string()
-          .min(1)
-          .describe("New losscut price as a decimal string"),
+        losscutPrice: decimalString.describe(
+          "New losscut price as a decimal string",
+        ),
       }),
       annotations: destructive,
     },

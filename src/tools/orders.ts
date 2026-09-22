@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { privateRequest } from "../client/http.js";
-import { runTool, type ToolContext } from "./common.js";
+import { decimalString, runTool, type ToolContext } from "./common.js";
 
 const side = z.enum(["BUY", "SELL"]);
 const executionType = z.enum(["MARKET", "LIMIT", "STOP"]);
@@ -30,17 +30,11 @@ const placeOrderSchema = z
     side,
     executionType,
     timeInForce: timeInForce.optional(),
-    price: z
-      .string()
-      .min(1)
-      .describe("Order price as a decimal string")
-      .optional(),
-    losscutPrice: z
-      .string()
-      .min(1)
+    price: decimalString.describe("Order price as a decimal string").optional(),
+    losscutPrice: decimalString
       .describe("Leverage losscut price as a decimal string")
       .optional(),
-    size: z.string().min(1).describe("Order size as a decimal string"),
+    size: decimalString.describe("Order size as a decimal string"),
     cancelBefore: z.boolean().optional(),
   })
   .superRefine((input, context) => {
@@ -180,10 +174,8 @@ export function registerOrderWriteTools(
       description: "Moves real money: change the price of an existing order.",
       inputSchema: z.object({
         orderId: z.number().int().positive(),
-        price: z.string().min(1).describe("Order price as a decimal string"),
-        losscutPrice: z
-          .string()
-          .min(1)
+        price: decimalString.describe("Order price as a decimal string"),
+        losscutPrice: decimalString
           .describe("Leverage losscut price as a decimal string")
           .optional(),
       }),

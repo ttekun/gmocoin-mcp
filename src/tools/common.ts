@@ -1,6 +1,11 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { z } from "zod";
 import type { PrivateCredentials } from "../client/http.js";
 import { formatToolError } from "../client/errors.js";
+
+export const decimalString = z
+  .string()
+  .regex(/^\d+(\.\d+)?$/, 'Use a non-negative decimal string such as "0.01"');
 
 export interface ToolContext {
   credentials: PrivateCredentials;

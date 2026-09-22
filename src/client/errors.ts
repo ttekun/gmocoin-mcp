@@ -67,6 +67,14 @@ export class GmoApiError extends Error {
   }
 }
 
+const RAW_BODY_LIMIT = 2048;
+
+function presentRawBody(rawBody: string): string {
+  if (rawBody.length <= RAW_BODY_LIMIT) return rawBody;
+  const totalBytes = Buffer.byteLength(rawBody);
+  return `${rawBody.slice(0, RAW_BODY_LIMIT)}... [truncated, ${totalBytes} bytes total]`;
+}
+
 export function formatToolError(error: unknown): CallToolResult {
   let text: string;
 
@@ -85,7 +93,9 @@ export function formatToolError(error: unknown): CallToolResult {
         httpStatus: error.httpStatus,
         status: error.status,
         messages: details,
-        ...(error.messages.length === 0 ? { rawBody: error.rawBody } : {}),
+        ...(error.messages.length === 0
+          ? { rawBody: presentRawBody(error.rawBody) }
+          : {}),
       },
       null,
       2,

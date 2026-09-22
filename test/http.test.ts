@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { GmoApiError } from "../src/client/errors.js";
+import { formatToolError, GmoApiError } from "../src/client/errors.js";
 import { parseEnvelope } from "../src/client/http.js";
 
 describe("parseEnvelope", () => {
@@ -49,5 +49,36 @@ describe("parseEnvelope", () => {
         return true;
       },
     );
+  });
+
+  it("truncates a 10 KB non-JSON body in tool output", async () => {
+    const rawBody = "x".repeat(10 * 1024);
+    const response = new Response(rawBody, { status: 503 });
+
+    await assert.rejects(parseEnvelope(response), (error: unknown) => {
+      assert.ok(error instanceof GmoApiError);
+      assert.equal(error.rawBody.length, 10240);
+      const result = formatToolError(error);
+      const block = result.content[0];
+      const text = block?.type === "text" ? block.text : "";
+      const marker = "... [truncated, 10240 bytes total]";
+      const expected = JSON.stringify(
+        {
+          error: "GMO Coin API error",
+          httpStatus: 503,
+          messages: [
+            { message: "GMO Coin returned a non-JSON response (HTTP 503)" },
+          ],
+          rawBody: `${"x".repeat(2048)}${marker}`,
+        },
+        null,
+        2,
+      );
+      assert.equal(text, expected);
+      assert.equal(text.length, expected.length);
+      assert.match(text, /\[truncated, 10240 bytes total\]/);
+      assert.equal(text.split("x").length - 1, 2048);
+      return true;
+    });
   });
 });
