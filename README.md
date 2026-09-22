@@ -205,6 +205,10 @@ Local `npm run dev:worker` reads the operator settings from `.dev.vars` (see
 
 ### Deploy
 
+When rolling out this version, the operator must add the `X-GMO-API-KEY` and
+`X-GMO-API-SECRET` headers to their own client configuration, exactly like
+every other user.
+
 ```bash
 npm run deploy
 ```
@@ -235,6 +239,9 @@ connectors such as claude.ai are not supported by this deployment model.
   }
 }
 ```
+
+If `tools/list` returns only the six public tools, check that both
+`X-GMO-API-KEY` and `X-GMO-API-SECRET` are present and non-empty.
 
 Add `"X-GMO-ENABLE-TRADING": "true"` only when write tools are required and
 the operator has enabled trading. Users can also tighten the operator ceilings
