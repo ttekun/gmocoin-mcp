@@ -87,6 +87,7 @@ export function registerPositionReadTools(
 ): void {
   const get = (path: string, query: Record<string, string | number | undefined>) =>
     privateRequest(context.credentials, "GET", path, { query });
+  const readOnly = { readOnlyHint: true };
 
   server.registerTool(
     "gmo_get_open_positions",
@@ -98,6 +99,7 @@ export function registerPositionReadTools(
         page: z.number().int().positive().optional(),
         count: z.number().int().min(1).max(100).optional(),
       }),
+      annotations: readOnly,
     },
     (input) => runTool(() => get("/v1/openPositions", input)),
   );
@@ -108,6 +110,7 @@ export function registerPositionReadTools(
       title: "Get position summary",
       description: "Return leverage position summaries by symbol and side.",
       inputSchema: z.object({ symbol: z.string().min(1).optional() }),
+      annotations: readOnly,
     },
     (input) => runTool(() => get("/v1/positionSummary", input)),
   );

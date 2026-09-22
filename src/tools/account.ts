@@ -117,6 +117,7 @@ export function registerAccountTools(
 ): void {
   const get = (path: string, query?: Record<string, string | number | undefined>) =>
     privateRequest(context.credentials, "GET", path, { query });
+  const readOnly = { readOnlyHint: true };
 
   server.registerTool(
     "gmo_get_margin",
@@ -124,6 +125,7 @@ export function registerAccountTools(
       title: "Get account margin",
       description: "Return margin, buying power, margin ratio, and margin-call status.",
       inputSchema: z.object({}),
+      annotations: readOnly,
     },
     () => runTool(() => get("/v1/account/margin")),
   );
@@ -134,6 +136,7 @@ export function registerAccountTools(
       title: "Get account assets",
       description: "Return JPY and crypto asset balances. Numeric values remain strings.",
       inputSchema: z.object({}),
+      annotations: readOnly,
     },
     () => runTool(() => get("/v1/account/assets")),
   );
@@ -144,6 +147,7 @@ export function registerAccountTools(
       title: "Get trading volume",
       description: "Return JPY trading volume, fee tier, limits, and fees.",
       inputSchema: z.object({}),
+      annotations: readOnly,
     },
     () => runTool(() => get("/v1/account/tradingVolume")),
   );
@@ -155,6 +159,7 @@ export function registerAccountTools(
       description:
         "Return JPY deposit history. Timestamps are UTC and the range is at most 30 minutes.",
       inputSchema: fiatHistorySchema,
+      annotations: readOnly,
     },
     (input) => runTool(() => get("/v1/account/fiatDeposit/history", input)),
   );
@@ -166,6 +171,7 @@ export function registerAccountTools(
       description:
         "Return JPY withdrawal history. Timestamps are UTC and the range is at most 30 minutes.",
       inputSchema: fiatHistorySchema,
+      annotations: readOnly,
     },
     (input) => runTool(() => get("/v1/account/fiatWithdrawal/history", input)),
   );
@@ -177,6 +183,7 @@ export function registerAccountTools(
       description:
         "Return crypto deposit history. Timestamps are UTC and the range is at most 30 minutes.",
       inputSchema: cryptoHistorySchema,
+      annotations: readOnly,
     },
     (input) => runTool(() => get("/v1/account/deposit/history", input)),
   );
@@ -188,6 +195,7 @@ export function registerAccountTools(
       description:
         "Return crypto withdrawal history. Timestamps are UTC and the range is at most 30 minutes.",
       inputSchema: cryptoHistorySchema,
+      annotations: readOnly,
     },
     (input) => runTool(() => get("/v1/account/withdrawal/history", input)),
   );
@@ -199,6 +207,7 @@ export function registerAccountTools(
       description:
         "Return exchange fee history. Dates are GMO business days (06:00–05:59 JST), range at most 7 days. Reuse the same dates with a returned cursor.",
       inputSchema: exchangeFeeSchema,
+      annotations: readOnly,
     },
     (input) => runTool(() => get("/v1/account/exchangeFee/history", input)),
   );

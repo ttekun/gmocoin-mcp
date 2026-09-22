@@ -88,6 +88,7 @@ export function registerOrderReadTools(
 ): void {
   const get = (path: string, query: Record<string, string | number | undefined>) =>
     privateRequest(context.credentials, "GET", path, { query });
+  const readOnly = { readOnlyHint: true };
 
   server.registerTool(
     "gmo_get_orders",
@@ -95,6 +96,7 @@ export function registerOrderReadTools(
       title: "Get orders",
       description: "Return up to 10 orders by comma-separated order IDs.",
       inputSchema: z.object({ orderId: commaSeparatedIds }),
+      annotations: readOnly,
     },
     (input) => runTool(() => get("/v1/orders", input)),
   );
@@ -109,6 +111,7 @@ export function registerOrderReadTools(
         page: z.number().int().positive().optional(),
         count: z.number().int().min(1).max(100).optional(),
       }),
+      annotations: readOnly,
     },
     (input) => runTool(() => get("/v1/activeOrders", input)),
   );
@@ -120,6 +123,7 @@ export function registerOrderReadTools(
       description:
         "Return executions by one orderId or by up to 10 comma-separated execution IDs.",
       inputSchema: executionsSchema,
+      annotations: readOnly,
     },
     (input) => runTool(() => get("/v1/executions", input)),
   );
@@ -134,6 +138,7 @@ export function registerOrderReadTools(
         page: z.number().int().positive().optional(),
         count: z.number().int().min(1).max(100).optional(),
       }),
+      annotations: readOnly,
     },
     (input) => runTool(() => get("/v1/latestExecutions", input)),
   );

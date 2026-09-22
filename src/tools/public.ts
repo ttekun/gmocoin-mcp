@@ -44,12 +44,15 @@ const klinesSchema = z
   });
 
 export function registerPublicTools(server: McpServer): void {
+  const readOnly = { readOnlyHint: true };
+
   server.registerTool(
     "gmo_get_status",
     {
       title: "Get GMO Coin status",
       description: "Return the current exchange status: MAINTENANCE, PREOPEN, or OPEN.",
       inputSchema: z.object({}),
+      annotations: readOnly,
     },
     () => runTool(() => publicGet("/v1/status")),
   );
@@ -60,6 +63,7 @@ export function registerPublicTools(server: McpServer): void {
       title: "Get ticker",
       description: "Return 24-hour ticker data. Omit symbol to return all symbols.",
       inputSchema: z.object({ symbol: z.string().min(1).optional() }),
+      annotations: readOnly,
     },
     ({ symbol }) => runTool(() => publicGet("/v1/ticker", { symbol })),
   );
@@ -70,6 +74,7 @@ export function registerPublicTools(server: McpServer): void {
       title: "Get order book",
       description: "Return the current order-book snapshot for a symbol.",
       inputSchema: z.object({ symbol: z.string().min(1) }),
+      annotations: readOnly,
     },
     ({ symbol }) => runTool(() => publicGet("/v1/orderbooks", { symbol })),
   );
@@ -84,6 +89,7 @@ export function registerPublicTools(server: McpServer): void {
         page: z.number().int().positive().optional(),
         count: z.number().int().min(1).max(100).optional(),
       }),
+      annotations: readOnly,
     },
     (input) => runTool(() => publicGet("/v1/trades", input)),
   );
@@ -95,6 +101,7 @@ export function registerPublicTools(server: McpServer): void {
       description:
         "Return candlesticks. Use YYYYMMDD with 1min–1hour intervals, or YYYY with 4hour–1month intervals. Daily boundaries are 06:00 JST.",
       inputSchema: klinesSchema,
+      annotations: readOnly,
     },
     (input) => runTool(() => publicGet("/v1/klines", input)),
   );
@@ -105,6 +112,7 @@ export function registerPublicTools(server: McpServer): void {
       title: "Get symbols",
       description: "Return current symbols and their order-size, tick-size, and fee metadata.",
       inputSchema: z.object({}),
+      annotations: readOnly,
     },
     () => runTool(() => publicGet("/v1/symbols")),
   );
