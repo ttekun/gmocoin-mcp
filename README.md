@@ -177,17 +177,12 @@ ignores `GMO_API_KEY` and `GMO_API_SECRET` in its own environment.
 
 ### Secrets
 
-Set the shared access token as a Worker secret so it stays out of
-`wrangler.jsonc` and the git repo:
-
-```bash
-npx wrangler secret put MCP_AUTH_TOKEN
-```
-
-Generate the token with `openssl rand -hex 32` and share it only with invited
-users. It is a quota gate, not a user identity. A request with a missing or
-invalid token receives `401`; a valid request without GMO headers receives the
-six public tools.
+The Worker requires no shared access token, and the endpoint is publicly
+accessible by default. Keeping the `workers.dev` URL private does not enforce
+any access restriction: anyone who discovers it can call the six public tools
+and consume the operator's Cloudflare Workers quota. The code has no rate
+limiting, CORS, or origin check. To restrict access, put an external gate such
+as Cloudflare Access in front of the Worker.
 
 Remove any operator credentials left from an earlier single-user deployment:
 
@@ -241,7 +236,6 @@ connectors such as claude.ai are not supported by this deployment model.
       "type": "http",
       "url": "https://gmocoin-mcp.<subdomain>.workers.dev/mcp",
       "headers": {
-        "Authorization": "Bearer ${GMOCOIN_MCP_TOKEN}",
         "X-GMO-API-KEY": "${GMO_API_KEY}",
         "X-GMO-API-SECRET": "${GMO_API_SECRET}"
       }
@@ -261,7 +255,6 @@ The command-line alternative is:
 
 ```bash
 claude mcp add --transport http gmocoin https://gmocoin-mcp.<subdomain>.workers.dev/mcp \
-  --header "Authorization: Bearer <token>" \
   --header "X-GMO-API-KEY: <key>" \
   --header "X-GMO-API-SECRET: <secret>"
 ```
@@ -269,6 +262,9 @@ claude mcp add --transport http gmocoin https://gmocoin-mcp.<subdomain>.workers.
 This command puts all header values in shell history and stores them as plain
 text in `~/.claude.json`. `claude mcp get gmocoin` prints the header values
 unmasked; `claude mcp list` does not.
+
+A stray `Authorization` header is ignored, so clients migrating from an older
+token-based configuration keep working without editing it out first.
 
 ### Security notes
 
@@ -286,12 +282,9 @@ connected. Tail events include custom request headers without redaction. The
 Worker configuration disables invocation logs; keep invocation logs disabled
 and never add code that logs requests or headers.
 
-`MCP_AUTH_TOKEN` is mandatory. If it is unset, every request is refused.
-Optionally put Cloudflare Access in front of the Worker.
-
-If the shared token leaks, rotate it: generate a new one, run
-`npx wrangler secret put MCP_AUTH_TOKEN`, then update each invited client's
-configuration.
+There is no shared token to leak or rotate. The Worker itself performs no
+access control, and an undisclosed URL is not a substitute for one. Use an
+external gate such as Cloudflare Access when access must be restricted.
 
 ## Tools
 

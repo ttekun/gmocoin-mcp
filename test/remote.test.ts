@@ -4,8 +4,6 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { handleRemoteRequest, type RemoteEnv } from "../src/remote.js";
 
-const TOKEN = "test-token";
-
 const initializeBody = {
   jsonrpc: "2.0",
   id: 1,
@@ -34,9 +32,7 @@ async function withClient(
     {
       fetch: (input, init) =>
         handleRemoteRequest(new Request(input, init), env),
-      requestInit: {
-        headers: { Authorization: `Bearer ${TOKEN}`, ...headers },
-      },
+      requestInit: { headers },
     },
   );
   const client = new Client({ name: "remote-test", version: "1.0.0" });
@@ -49,51 +45,10 @@ async function withClient(
 }
 
 describe("remote handler", () => {
-  it("returns 503 when MCP_AUTH_TOKEN is not configured", async () => {
-    const response = await handleRemoteRequest(
-      request("/mcp", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${TOKEN}` },
-      }),
-      {},
-    );
-
-    assert.equal(response.status, 503);
-    assert.deepEqual(await response.json(), {
-      error: "MCP_AUTH_TOKEN is not configured",
-    });
-  });
-
-  it("returns 401 when the bearer token is missing", async () => {
-    const response = await handleRemoteRequest(
-      request("/mcp", { method: "POST" }),
-      { MCP_AUTH_TOKEN: TOKEN },
-    );
-
-    assert.equal(response.status, 401);
-    assert.equal(response.headers.get("WWW-Authenticate"), "Bearer");
-  });
-
-  it("returns 401 when the bearer token is wrong", async () => {
-    const response = await handleRemoteRequest(
-      request("/mcp", {
-        method: "POST",
-        headers: { Authorization: "Bearer wrong-token" },
-      }),
-      { MCP_AUTH_TOKEN: TOKEN },
-    );
-
-    assert.equal(response.status, 401);
-    assert.equal(response.headers.get("WWW-Authenticate"), "Bearer");
-  });
-
   it("returns 405 for non-POST methods before opening a transport", async () => {
     const response = await handleRemoteRequest(
-      request("/mcp", {
-        method: "GET",
-        headers: { Authorization: `Bearer ${TOKEN}` },
-      }),
-      { MCP_AUTH_TOKEN: TOKEN },
+      request("/mcp", { method: "GET" }),
+      {},
     );
 
     assert.equal(response.status, 405);
@@ -102,11 +57,8 @@ describe("remote handler", () => {
 
   it("returns 404 for any path other than /mcp", async () => {
     const response = await handleRemoteRequest(
-      request("/", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${TOKEN}` },
-      }),
-      { MCP_AUTH_TOKEN: TOKEN },
+      request("/", { method: "POST" }),
+      {},
     );
 
     assert.equal(response.status, 404);
@@ -117,34 +69,12 @@ describe("remote handler", () => {
       request("/mcp", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${TOKEN}`,
           Accept: "application/json, text/event-stream",
           "Content-Type": "application/json",
         },
         body: JSON.stringify(initializeBody),
       }),
-      { MCP_AUTH_TOKEN: TOKEN },
-    );
-
-    assert.equal(response.status, 200);
-    const body = (await response.json()) as {
-      result: { serverInfo: { name: string } };
-    };
-    assert.equal(body.result.serverInfo.name, "gmocoin-mcp");
-  });
-
-  it("accepts a lowercase bearer scheme on initialize", async () => {
-    const response = await handleRemoteRequest(
-      request("/mcp", {
-        method: "POST",
-        headers: {
-          Authorization: `bearer ${TOKEN}`,
-          Accept: "application/json, text/event-stream",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(initializeBody),
-      }),
-      { MCP_AUTH_TOKEN: TOKEN },
+      {},
     );
 
     assert.equal(response.status, 200);
@@ -155,20 +85,15 @@ describe("remote handler", () => {
   });
 
   it("lists 6 public tools when credentials are absent", async () => {
-    await withClient(
-      { MCP_AUTH_TOKEN: TOKEN },
-      {},
-      async (client) => {
-        const result = await client.listTools();
-        assert.equal(result.tools.length, 6);
-      },
-    );
+    await withClient({}, {}, async (client) => {
+      const result = await client.listTools();
+      assert.equal(result.tools.length, 6);
+    });
   });
 
   it("ignores Worker credentials when request headers are absent", async () => {
     await withClient(
       {
-        MCP_AUTH_TOKEN: TOKEN,
         GMO_API_KEY: "dummy-key",
         GMO_API_SECRET: "dummy-secret",
       },
@@ -180,10 +105,25 @@ describe("remote handler", () => {
     );
   });
 
-  it("lists 20 tools when dummy credentials are sent as headers", async () => {
+  it("lists 20 tools when only key and secret headers are sent", async () => {
     await withClient(
-      { MCP_AUTH_TOKEN: TOKEN },
+      {},
       {
+        "X-GMO-API-KEY": "dummy-key",
+        "X-GMO-API-SECRET": "dummy-secret",
+      },
+      async (client) => {
+        const result = await client.listTools();
+        assert.equal(result.tools.length, 20);
+      },
+    );
+  });
+
+  it("ignores a stray Authorization header", async () => {
+    await withClient(
+      {},
+      {
+        Authorization: "Bearer anything",
         "X-GMO-API-KEY": "dummy-key",
         "X-GMO-API-SECRET": "dummy-secret",
       },
@@ -196,7 +136,7 @@ describe("remote handler", () => {
 
   it("lists 20 tools when only the user enables trading", async () => {
     await withClient(
-      { MCP_AUTH_TOKEN: TOKEN },
+      {},
       {
         "X-GMO-API-KEY": "dummy-key",
         "X-GMO-API-SECRET": "dummy-secret",
@@ -211,7 +151,7 @@ describe("remote handler", () => {
 
   it("lists 29 tools when the user and operator enable trading", async () => {
     await withClient(
-      { MCP_AUTH_TOKEN: TOKEN, GMO_ENABLE_TRADING: "true" },
+      { GMO_ENABLE_TRADING: "true" },
       {
         "X-GMO-API-KEY": "dummy-key",
         "X-GMO-API-SECRET": "dummy-secret",
