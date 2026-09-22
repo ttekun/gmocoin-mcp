@@ -217,7 +217,7 @@ The endpoint is `https://gmocoin-mcp.<subdomain>.workers.dev/mcp`.
 
 ### Client setup
 
-Example for Claude Code:
+Verified with Claude Code:
 
 Create a project `.mcp.json` and export the referenced values in the shell that
 starts Claude Code. Claude Code supports `${VAR}` expansion in project MCP
