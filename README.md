@@ -89,8 +89,8 @@ GMO_MAX_ORDER_SIZE=0.01
 
 ## Security notes
 
-Authenticated GMO API requests reject redirects to prevent forwarding API keys
-and signatures to another destination.
+Authenticated GMO API requests never follow redirects, so API keys and
+signatures are never forwarded to another destination.
 
 Create the GMO Coin API key with the minimum permissions required. Use
 read-only permissions unless trading is intentionally enabled, and turn on IP
