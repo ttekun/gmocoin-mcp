@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
+import { GmoApiError } from "../src/client/errors.js";
 import { privateRequest } from "../src/client/http.js";
 import { sign } from "../src/client/sign.js";
 
@@ -93,6 +94,19 @@ describe("privateRequest", () => {
         "/v1/order",
         bodyText as string,
       ),
+    );
+  });
+
+  it("rejects a redirect response instead of following it", async () => {
+    globalThis.fetch = async () =>
+      new Response("", {
+        status: 302,
+        headers: { Location: "https://evil.example/" },
+      });
+
+    await assert.rejects(
+      privateRequest(credentials, "GET", "/v1/account/assets"),
+      GmoApiError,
     );
   });
 });
